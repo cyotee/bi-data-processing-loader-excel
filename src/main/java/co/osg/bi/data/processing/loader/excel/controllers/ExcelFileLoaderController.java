@@ -1,0 +1,67 @@
+package co.osg.bi.data.processing.loader.excel.controllers;
+
+import co.osg.bi.data.processing.loader.excel.dao.ExcelPOIHelper;
+import co.osg.bi.data.processing.loader.excel.model.cell.MyCell;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.Resource;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+
+@Controller
+public class ExcelFileLoaderController {
+
+    private String fileLocation;
+
+    @Resource(name = "excelPOIHelper")
+    private ExcelPOIHelper excelPOIHelper;
+
+    @RequestMapping(method = RequestMethod.GET, value = "/excelProcessing")
+    public String getExcelProcessingPage() {
+        return "excel";
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/uploadExcelFile")
+    public String uploadFile(Model model, MultipartFile file) throws IOException {
+
+        fileLocation = "out/uploads/" + file.getOriginalFilename();
+
+        /*File outputFile = new File(fileLocation);
+        file.transferTo(outputFile);*/
+
+        InputStream in = file.getInputStream();
+        FileOutputStream f = new FileOutputStream(fileLocation);
+        int ch = 0;
+        while ((ch = in.read()) != -1) {
+            f.write(ch);
+        }
+        f.flush();
+        f.close();
+        model.addAttribute("message", "File: " + file.getOriginalFilename() + " has been uploaded successfully!");
+        return "excel";
+    }
+
+    @RequestMapping(method = RequestMethod.GET, value = "/readPOI")
+    public String readPOI(Model model) throws IOException {
+
+        if (fileLocation != null) {
+            if (fileLocation.endsWith(".xlsx") || fileLocation.endsWith(".xls")) {
+                Map<Integer, List<MyCell>> data = excelPOIHelper.readExcel(fileLocation);
+                model.addAttribute("data", data);
+            } else {
+                model.addAttribute("message", "Not a valid excel file!");
+            }
+        } else {
+            model.addAttribute("message", "File missing! Please upload an excel file.");
+        }
+        return "excel";
+    }
+}
